@@ -5,7 +5,8 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/adc.h"
-#include "pico/time.h"
+#include "pico/time.h
+#include "ssd1306_font.h"
 
 // ─────────── Display constants ───────────
 #define W        128
@@ -22,7 +23,7 @@ static uint8_t fb[FB_LEN];
 #define i2c_default           i2c0
 
 // ─────────── ADC channel ───────────
-#define POT_ADC   0   // GP26
+#define POT_ADC   1   // GP27
 
 // ─────────── Game parameters ───────────
 #define TARGET_ZONE_WIDTH 20  // degrees
@@ -78,8 +79,8 @@ static inline void px(int x, int y, bool on) {
 
 // ─────────── Potentiometer Handling ───────────
 static void adc_init_pot(void) {
-    adc_init();
-    adc_gpio_init(26); // POT_ADC (GP26)
+    adc_init(POT_ADC);
+    adc_gpio_init(27); // POT_ADC (GP27)
 }
 
 static uint16_t read_pot_raw(void) {
