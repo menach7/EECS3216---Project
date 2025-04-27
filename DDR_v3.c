@@ -70,6 +70,7 @@ typedef struct {
     int arrow;                 // 0=LEFT, 1=UP, 2=RIGHT, 3=DOWN
     absolute_time_t hit_time;  // Scheduled time to hit
     bool hit;                  // Whether the arrow has been hit
+    bool counted;              // Whether this hit was counted (for tracking)
 } ArrowCommand;
 
 #define MAX_ARROWS 10
@@ -79,6 +80,8 @@ int arrow_count = 0;
 // Global score and combo variables.
 int score = 0;
 int combo = 0;
+int target_arrow_count = 0;  // Count of tracked arrow hits
+int target_arrow = 1;        // Default to UP (A)
 
 // ---------- LCD Functions ----------
 
@@ -252,6 +255,7 @@ void add_arrow_command(int arrow, uint32_t delay_ms) {
         arrows[arrow_count].arrow = arrow;
         arrows[arrow_count].hit_time = make_timeout_time_ms(delay_ms);
         arrows[arrow_count].hit = false;
+        arrows[arrow_count].counted = false;
         arrow_count++;
     }
 }
@@ -281,7 +285,7 @@ void show_feedback(const char *msg) {
 }
 
 // Award points based on how close the timing was.
-void register_hit(uint32_t timing_diff_us) {
+void register_hit(uint32_t timing_diff_us, int arrow_type) {
     if (timing_diff_us < 100000) {  // within 100ms = perfect hit
         score += 100 * (combo + 1);
         combo++;
@@ -294,6 +298,12 @@ void register_hit(uint32_t timing_diff_us) {
         score += 20;
         combo = 0;
         show_feedback("Good");
+    }
+
+    // Count if it's our target arrow type
+    if (arrow_type == target_arrow && !arrows[arrow_count].counted) {
+        target_arrow_count++;
+        arrows[arrow_count].counted = true;
     }
 }
 
@@ -329,7 +339,7 @@ void game_loop_scrolling(int round) {
                 
                 int btn = wait_for_button_press(HIT_WINDOW_MS);
                 if (btn == arrows[i].arrow) {
-                    register_hit(diff_us);
+                    register_hit(diff_us, arrows[i].arrow);
                     arrows[i].hit = true;
                 } else {
                     combo = 0;
@@ -349,15 +359,16 @@ void game_loop_scrolling(int round) {
     
     lcd_clear();
     char scoreStr[16];
-    snprintf(scoreStr, sizeof(scoreStr), "Score: %d", score);
+    snprintf(scoreStr, sizeof(scoreStr), "Target:%d", target_arrow_count);
     lcd_set_cursor(0, 0);
     lcd_string(scoreStr);
     sleep_ms(3000);
 }
 
-int main() {
+int DDR_v3_game(char mode_char) {
 #if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
     #warning i2c/lcd_1602_i2c example requires a board with I2C pins
+    return 0;
 #else
     stdio_init_all();
     
@@ -368,19 +379,41 @@ int main() {
     gpio_pull_up(PICO_DEFAULT_I2C_SDA_PIN);
     gpio_pull_up(PICO_DEFAULT_I2C_SCL_PIN);
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, 
-                                 PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
+                             PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
     
     lcd_init_custom();
     buttons_init();
     srand(time_us_32());
     
-    int round = 1;
+    // Initialize game state
     score = 0;
+    combo = 0;
+    target_arrow_count = 0;
     
+    // Set target arrow based on mode character
+    switch(mode_char) {
+        case 'A': target_arrow = 1; break; // Up
+        case 'B': target_arrow = 3; break; // Down
+        case 'C': target_arrow = 0; break; // Left
+        case 'D': target_arrow = 2; break; // Right
+        default:  target_arrow = 1; break; // Default to up
+    }
+    
+    int round = 1;
     while (1) {
         lcd_clear();
         lcd_set_cursor(0, 0);
-        lcd_string("DDR Game!");
+        
+        // Show which arrow we're tracking
+        char arrow_name[10];
+        switch(target_arrow) {
+            case 0: strcpy(arrow_name, "TRACK:LEFT"); break;
+            case 1: strcpy(arrow_name, "TRACK:UP"); break;
+            case 2: strcpy(arrow_name, "TRACK:RIGHT"); break;
+            case 3: strcpy(arrow_name, "TRACK:DOWN"); break;
+        }
+        lcd_string(arrow_name);
+        
         lcd_set_cursor(1, 0);
         lcd_string("Press any btn");
         while (get_button_pressed() == -1) {
@@ -394,7 +427,11 @@ int main() {
         update_difficulty(round);
         game_loop_scrolling(round);
         round++;
+        
+        // Return after one complete game session
+        break;
     }
+    
+    return target_arrow_count;
 #endif
-    return 0;
 }
