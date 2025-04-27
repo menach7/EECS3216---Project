@@ -5,7 +5,7 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/adc.h"
-#include "pico/time.h
+#include "pico/time.h"
 #include "ssd1306_font.h"
 
 // ─────────── Display constants ───────────
