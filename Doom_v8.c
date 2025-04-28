@@ -2,7 +2,7 @@
 // doom_V8.c  – stable OLED + joystick input via ADC for crosshair movement
 //   • OLED 128×64   → I²C-0  (GP16 = SDA , GP17 = SCL)  @100 kHz
 //   • Joystick VRX  → ADC0  (GP26)
-//   • Joystick VRY  → ADC1  (GP27)
+//   • Joystick VRY  → ADC2  (GP28)
 //   • Push-button    → GP15 (active-low)               (start / shoot)
 //   • Diagonal movement, velocity control, survival timer, win screen
 // -----------------------------------------------------------------------------
@@ -154,7 +154,7 @@ static int update(void){
 // ─────────── Crosshair via joystick (velocity mode) ─────────────────────────
 static void update_crosshair(void){
     adc_select_input(0); uint x=adc_read();
-    adc_select_input(1); uint y=adc_read();
+    adc_select_input(2); uint y=adc_read();
     float jx=((float)x-center_x_raw)/2048.0f;
     float jy=((float)y-center_y_raw)/2048.0f;
     jx=fmaxf(-1,fminf(1,jx)); jy=fmaxf(-1,fminf(1,jy));
@@ -217,7 +217,7 @@ static void hw_once(void){
     gpio_set_function(17,GPIO_FUNC_I2C);
     gpio_pull_up(16); gpio_pull_up(17);
     i2c_init(i2c_default,100000);
-    adc_init(); adc_gpio_init(26); adc_gpio_init(27);
+    adc_init(); adc_gpio_init(26); adc_gpio_init(28);
     gpio_init(BTN_PIN); gpio_set_dir(BTN_PIN,GPIO_IN); gpio_pull_up(BTN_PIN);
 }
 
@@ -229,7 +229,7 @@ int main(void){
         for(int i=3;i>0;i--){ char d[2]={(char)('0'+i),'\0'}; framed(d); sleep_ms(500); }
         framed("GO!"); sleep_ms(400);
         adc_select_input(0); center_x_raw=adc_read();
-        adc_select_input(1); center_y_raw=adc_read();
+        adc_select_input(2); center_y_raw=adc_read();
         cross_x = W/2; cross_y = H/2;
         Ec=0; memset(E,0,sizeof E); srand(time_us_32());
         uint32_t start_ms = time_us_32()/1000;

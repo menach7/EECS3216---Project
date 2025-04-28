@@ -50,10 +50,10 @@ static int addr = 0x27;
 #define MAX_CHARS      16
 
 // DDR Game Settings & Button Pins
-#define BUTTON_UP_PIN     18
-#define BUTTON_RIGHT_PIN  19
-#define BUTTON_DOWN_PIN   20
-#define BUTTON_LEFT_PIN   21
+#define BUTTON_UP_PIN     7
+#define BUTTON_RIGHT_PIN  8
+#define BUTTON_DOWN_PIN   9
+#define BUTTON_LEFT_PIN   6
 
 // Basic timing and gameplay constants (adjusted for half speed)
 #define HIT_ZONE_POS      0      // leftmost column is our hit zone
